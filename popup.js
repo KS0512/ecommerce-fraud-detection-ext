@@ -1,7 +1,7 @@
 // popup.js - Fast Non-Lagging Extension UI & PDF Evidence Report Generator
 
-const API_BASE = "http://127.0.0.1:5001/api";
-const FEEDBACK_URL = "http://127.0.0.1:5001/api/feedback";
+const API_BASE = "https://ecommerce-fraud-detection-ext-production-81ca.up.railway.app/api";
+const FEEDBACK_URL = "https://ecommerce-fraud-detection-ext-production-81ca.up.railway.app/api/feedback";
 
 let lastResult = null;
 let selectedVote = null;

@@ -1,12 +1,14 @@
 // background.js
 
-const API_ENDPOINT = "http://127.0.0.1:5001/api/analyze";
+const API_ENDPOINT = "https://ecommerce-fraud-detection-ext-production-81ca.up.railway.app/api/analyze";
 const pendingRequests = new Set();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "TRIGGER_AUDIT") {
+  if (message.action === "TRIGGER_AUDIT" && message.payload) {
     const payload = message.payload;
-    const cacheKey = `audit_${payload.domain}_${payload.title.slice(0, 30)}`;
+    const safeTitle = (payload.title || "item").slice(0, 30);
+    const cacheKey = `audit_${payload.domain}_${safeTitle}`;
+    const storageKey = `audit_${payload.domain}`;
 
     // Avoid duplicate simultaneous requests
     if (pendingRequests.has(cacheKey)) {
@@ -14,6 +16,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     pendingRequests.add(cacheKey);
+
+    // Notify storage that audit is in progress
+    chrome.storage.local.set({
+      [storageKey]: { status: "LOADING", timestamp: Date.now() }
+    });
 
     fetch(API_ENDPOINT, {
       method: "POST",
@@ -27,7 +34,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then((data) => {
         pendingRequests.delete(cacheKey);
         chrome.storage.local.set({
-          [`audit_${payload.domain}`]: { status: "COMPLETED", data: data, timestamp: Date.now() }
+          [storageKey]: { status: "COMPLETED", data: data, timestamp: Date.now() }
         });
 
         if (sender.tab && sender.tab.id) {
@@ -40,7 +47,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((err) => {
         pendingRequests.delete(cacheKey);
         chrome.storage.local.set({
-          [`audit_${payload.domain}`]: { status: "FAILED", error: err.message }
+          [storageKey]: { status: "FAILED", error: err.message }
         });
       });
   }
